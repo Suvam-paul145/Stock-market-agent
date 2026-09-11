@@ -1,0 +1,7 @@
+{
+  "watchlist": ["AAPL", "MSFT", "NVDA"],
+  "watchlist_is_example": true,
+  "horizon": "unconfirmed",
+  "price_max_age_seconds": 900,
+  "filings_cache_seconds": 900
+}

@@ -1,0 +1,22 @@
+name: stock-agent-dev
+
+services:
+  postgres:
+    image: postgres:17-alpine@sha256:18cfe3ef5e6815560c98237d6216d1e5119702fb0f3894c8785dd58b8bbe5d73
+    environment:
+      # Public, development-only credentials. Never use these on a hosted database.
+      POSTGRES_USER: stock_agent_dev
+      POSTGRES_PASSWORD: local-development-only
+      POSTGRES_DB: stock_agent_test
+    ports:
+      - "127.0.0.1:55432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U stock_agent_dev -d stock_agent_test"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  postgres-data:
