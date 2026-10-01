@@ -2,6 +2,7 @@
 .env.*
 !.env.example
 config.local.json
+screening.local.json
 data/
 reports/
 __pycache__/

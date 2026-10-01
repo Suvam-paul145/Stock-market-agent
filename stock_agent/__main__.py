@@ -6,9 +6,14 @@ from pathlib import Path
 
 from .core import Store, load_config
 from .research import collect, export
+from .environment import load_local_environment
 
 
 def main():
+    load_local_environment()
+    if len(sys.argv) > 1 and sys.argv[1] == "screen":
+        from .screening.cli import main as screen_main
+        return screen_main(sys.argv[2:])
     parser = argparse.ArgumentParser(description="Local US-stock research collection; no trading or paid AI calls")
     parser.add_argument("command", choices=["doctor", "demo", "collect"])
     parser.add_argument("--config", default="config.example.json")

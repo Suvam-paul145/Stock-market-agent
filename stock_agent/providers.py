@@ -20,9 +20,10 @@ class NoRedirect(HTTPRedirectHandler):
 
 
 class HttpClient:
-    def __init__(self, store, budget=30):
+    def __init__(self, store, budget=30, deadline_seconds=None):
         self.store, self.budget, self.used = store, budget, 0
         self.last_request = 0.0
+        self.deadline = time.monotonic() + deadline_seconds if deadline_seconds else None
         self.opener = build_opener(NoRedirect())
 
     def get(self, url, headers, ttl=0):
@@ -32,6 +33,8 @@ class HttpClient:
         if cached:
             return cached[0], cached[1], True
         for attempt in range(3):
+            if self.deadline and time.monotonic() + 16 > self.deadline:
+                raise ProviderError("Per-run time budget exhausted")
             if self.used >= self.budget:
                 raise ProviderError("Per-run request budget exhausted")
             time.sleep(max(0, 0.6 - (time.monotonic() - self.last_request)))
@@ -95,3 +98,41 @@ class Alpaca:
             raise ProviderError("not_configured: set APCA_API_KEY_ID and APCA_API_SECRET_KEY locally")
         url = "https://data.alpaca.markets/v2/stocks/trades/latest?" + urlencode({"symbols": ",".join(symbols), "feed": "iex"})
         return self.client.get(url, {"APCA-API-KEY-ID": key, "APCA-API-SECRET-KEY": secret}, ttl=30)
+
+    def headers(self):
+        key, secret = os.getenv("APCA_API_KEY_ID"), os.getenv("APCA_API_SECRET_KEY")
+        if not key or not secret:
+            raise ProviderError("not_configured: set Alpaca credentials locally")
+        return {"APCA-API-KEY-ID": key, "APCA-API-SECRET-KEY": secret}
+
+    def daily_bars(self, symbols, start, end):
+        """Complete bounded pagination: never return a truncated ranking universe."""
+        headers = self.headers()
+        params = dict(symbols=",".join(symbols), timeframe="1Day", start=start, end=end,
+                      feed="iex", adjustment="all", limit=10000, sort="asc")
+        result, pages, seen = {s: [] for s in symbols}, [], set()
+        for _ in range(10):
+            payload, fetched, _ = self.client.get(
+                "https://data.alpaca.markets/v2/stocks/bars?" + urlencode(params), headers, ttl=0)
+            if not isinstance(payload, dict) or not isinstance(payload.get("bars"), dict):
+                raise ProviderError("Historical bars response has an invalid schema")
+            for symbol, bars in payload["bars"].items():
+                if symbol not in result or not isinstance(bars, list):
+                    raise ProviderError("Unexpected symbol or invalid bars in historical response")
+                result[symbol].extend(bars)
+                if len(result[symbol]) > 1000:
+                    raise ProviderError("Historical bar count exceeds per-symbol bound")
+            pages.append(fetched)
+            token = payload.get("next_page_token")
+            if token is None:
+                return result, pages
+            if not isinstance(token, str) or not token or token in seen or len(token) > 4096:
+                raise ProviderError("Historical pagination token is invalid or repeated")
+            seen.add(token)
+            params["page_token"] = token
+        raise ProviderError("Historical pagination limit reached; partial universe rejected")
+
+    def snapshots(self, symbols):
+        url = "https://data.alpaca.markets/v2/stocks/snapshots?" + urlencode(
+            {"symbols": ",".join(symbols), "feed": "iex"})
+        return self.client.get(url, self.headers(), ttl=0)

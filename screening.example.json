@@ -1,0 +1,22 @@
+{
+  "universe_name": "Starter US large-company universe; not the whole market",
+  "symbols": ["AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "AVGO", "JPM", "V", "MA", "WMT", "COST", "HD", "PG", "KO", "PEP", "JNJ", "MRK", "ABBV", "XOM", "CVX", "CAT", "GE", "LIN", "NEE", "DUK", "PLD", "AMT", "DIS", "NFLX"],
+  "benchmark": "SPY",
+  "risk_profile": "balanced",
+  "top_n": 5,
+  "max_per_sector": 2,
+  "minimum_price_usd": 5,
+  "minimum_iex_daily_dollar_volume": 1000000,
+  "minimum_universe_coverage": 0.8,
+  "max_snapshot_age_seconds": 900,
+  "sectors": {
+    "AAPL": "Technology", "MSFT": "Technology", "NVDA": "Technology", "AVGO": "Technology",
+    "AMZN": "Consumer discretionary", "HD": "Consumer discretionary",
+    "GOOGL": "Communication", "META": "Communication", "DIS": "Communication", "NFLX": "Communication",
+    "JPM": "Financials", "V": "Financials", "MA": "Financials",
+    "WMT": "Consumer staples", "COST": "Consumer staples", "PG": "Consumer staples", "KO": "Consumer staples", "PEP": "Consumer staples",
+    "JNJ": "Healthcare", "MRK": "Healthcare", "ABBV": "Healthcare",
+    "XOM": "Energy", "CVX": "Energy", "CAT": "Industrials", "GE": "Industrials",
+    "LIN": "Materials", "NEE": "Utilities", "DUK": "Utilities", "PLD": "Real estate", "AMT": "Real estate"
+  }
+}
