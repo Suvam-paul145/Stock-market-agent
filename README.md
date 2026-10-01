@@ -1,6 +1,20 @@
 # Stock Market Agent
 
-A local research workbench for Suvam's personal US-stock watchlist. Trades remain manual in INDmoney. Version 0.1 collects evidence and exports it for review; it does not yet produce evaluated investment recommendations.
+A local research workbench for Suvam's personal US-stock research. Trades remain manual in INDmoney. It now produces up to five provisional candidates for 1–7 days, one month and six months, plus observed session leaders. These are explainable technical screens, not evaluated investment recommendations.
+
+## Run the four-view research screen
+
+```powershell
+uv sync --frozen --cache-dir .uv-cache
+.venv\Scripts\python -m stock_agent doctor
+.venv\Scripts\python -m stock_agent screen
+```
+
+The main CLI now loads `.env` automatically; existing shell variables take precedence. Set `SEC_USER_AGENT`, `APCA_API_KEY_ID` and `APCA_API_SECRET_KEY` locally. Never commit `.env`. Each run saves HTML, Markdown, JSON and its public market inputs under a dated folder such as `reports/2026-10-01_14-30-25_IST_screen/`. Dates use the report's original generation time in India Standard Time. Runs in the same second get a numbered suffix to avoid overwriting. Open `reports/index.html` for the report history, with the newest report always first, or open an individual report's `index.html`. In Windows Explorer, sort folder names descending for newest first. Reports are snapshots; run again to refresh.
+
+The default configuration screens a labelled 30-company starter universe using free IEX data. Copy `screening.example.json` to `screening.local.json` to edit symbols, sectors and risk limits, then pass `--config screening.local.json`; `scripts/run-research.ps1` selects that local file automatically when present. A list can contain fewer than five or be unavailable when gates fail. Exit code 2 means an unavailable board or run failure; exit code 0 is not evidence of investment usefulness.
+
+Read [the multi-horizon implementation and two-year operating plan](docs/MULTI_HORIZON_IMPLEMENTATION.md) for formulas, limitations and remaining work. [PostgreSQL setup](docs/POSTGRES_FOUNDATION.md) is separate: the local screen requires no database and does not publish into the cloud. News, earnings and fundamentals still need review before trade-oriented recommendations.
 
 ## Current project direction
 
@@ -10,16 +24,16 @@ The 2026-09-11 research stage is documented separately:
 - [Research findings and source register](docs/RESEARCH_DOSSIER.md)
 - [Implementation blueprint and acceptance gates](docs/IMPLEMENTATION_BLUEPRINT.md)
 
-The selected target is Supabase PostgreSQL with private Storage, a scheduled Python research worker, and a private Vercel dashboard. Days-to-weeks research, strictly free recurring services and automatic public-evidence analysis are confirmed. These cloud capabilities are **planned, not implemented**. The commands below still run the original local SQLite prototype. Its example configuration is historical/demo configuration, not the confirmed production watchlist.
+The selected target is Supabase PostgreSQL with private Storage, a scheduled Python worker and private Vercel dashboard. Free recurring services remain required. The September 17 addendum supersedes older horizon/universe limits. Cloud deployment is **planned, not implemented**. The commands below describe the original SQLite collector, available separately.
 
 ## Run on Windows
 
-Python 3.11 or newer is required. This version uses only the Python standard library; no package install is needed. Run from this project folder:
+Use Python 3.12–3.14 and the locked environment above. Run from this project folder:
 
 ```powershell
-python -m stock_agent doctor
-python -m stock_agent demo
-python -m unittest discover -s tests -v
+.venv\Scripts\python -m stock_agent doctor
+.venv\Scripts\python -m stock_agent demo
+.venv\Scripts\python -m pytest -q --basetemp .pytest_cache/test-temp
 ```
 
 `demo` uses synthetic prices, makes no network requests and writes to a separate demonstration database. Open the printed report folder's `index.html` or `research.md`. Its prices are not market observations.
@@ -28,14 +42,14 @@ python -m unittest discover -s tests -v
 
 Copy `config.example.json` to `config.local.json`. Replace its watchlist, set `watchlist_is_example` to `false`, and choose `horizon`: `intraday`, `days_weeks`, or `months_years`. Leave `unconfirmed` until decided. Age limits are configurable research checks, not a claim that a feed is suitable for your trading horizon.
 
-Set these environment variables locally; `.env.example` documents them but is not automatically loaded:
+Set these environment variables locally, or place them in `.env` using `.env.example` as a template:
 
 ```powershell
 $env:SEC_USER_AGENT = 'YourAppName your-real-contact-email'
 $env:APCA_API_KEY_ID = 'your-key'
 $env:APCA_API_SECRET_KEY = 'your-secret'
-python -m stock_agent doctor --config config.local.json
-python -m stock_agent collect --config config.local.json
+.venv\Scripts\python -m stock_agent doctor --config config.local.json
+.venv\Scripts\python -m stock_agent collect --config config.local.json
 ```
 
 Enter real values only on your machine. Avoid saving commands containing secrets in shared shell history. SEC requires an identifying user agent with contact details; it does not need an API key. Alpaca requires a separately eligible account and credentials. Account eligibility and access must be verified with an actual response. The app calls only market-data endpoints and never broker/order endpoints.

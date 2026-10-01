@@ -1,4 +1,36 @@
-# Verification record — 2026-09-10
+# Verification record
+
+## Readable report folders — 2026-10-01
+
+Both exporters now use original report generation time in IST, for example `2026-10-01_14-30-25_IST_screen`. Same-second collisions receive a numbered suffix; existing files are never overwritten. The generated `reports/index.html` history page orders reports by their original timestamp, newest first. Windows folder views can use Name descending.
+
+Renamed all 12 existing UUID folders using embedded timestamps and checked SHA-256 hashes for every file before and after each move. The reversible old/new mapping is recorded in `reports/folder-renames.json`; historical paths mentioned below refer to the original names. Contents, market observation times and source hashes remain unchanged. No provider requests were made.
+
+Validation: **41 tests and 6 subtests passed** across report paths, the legacy workbench and screening. Ruff passed. Checks include the IST date boundary, collision preservation and timestamp ordering independent of directory creation order.
+
+## Multi-horizon screening and PostgreSQL — 2026-09-17 to 2026-09-19
+
+These results supersede the historical missing-provider and implementation-status statements below. They establish software/provider behavior, not profitable trading performance.
+
+| Check | Result | Evidence boundary |
+| --- | --- | --- |
+| Full suite with disposable PostgreSQL 17.11, September 17 | **78 tests and 6 subtests passed** | Includes real DB migrations, transactions, role restrictions, lease/budget concurrency, imports and screening fixtures; existing application data preserved. |
+| `ruff check stock_agent migrations tests` | Passed | Static code checks, not financial validation. |
+| Screening tests after weekend wording correction, September 19 | **24 tests passed**; targeted Ruff passed | Corrected closed-session volume explanation; no scoring formula changed. |
+| Live on-demand collection, September 17 | Four boards, five candidates each, 100% configured-universe coverage | IEX-only feed across 30 configured stocks plus SPY; all selected SEC metadata calls succeeded. |
+| Live weekend collection, September 19 | Four boards, five candidates each, 100% configured-universe coverage; 18 HTTP requests | The leader view correctly identifies September 18 as the latest completed session, not live Saturday data. Fifteen selected companies had successful SEC metadata enrichment. |
+| Recompute from saved live input | Evidence hash matched; new report directory preserved the original cutoff | Clarified completed-session wording without refetching or changing source observations. |
+| Credential export check | No configured SEC identity, Alpaca key or secret found in final exported files | Only boolean result printed; credentials were not displayed or transmitted to a model. |
+| Browser/layout check | Generated four-view HTML opened and visually inspected in local browser | Navigation, readable cards, evidence disclosures and visible limitations checked; no cloud deployment. |
+| Markdown references | Ten Markdown files checked; no missing local links | Documentation links only. |
+
+Latest checked input run: `reports/screen-e2ecc98fcda149baba1a0d3f667e85ab/`, observed at **2026-09-19 17:50:56 UTC**. Final report recomputed from those same inputs: `reports/screen-251591726214467ca2dcb923b43f4c96/`. Refresh before relying on later market conditions; reports are saved snapshots.
+
+Screening regressions cover hand-calculated returns, benchmark alignment, ties, sector caps, missing/future/duplicate/nonfinite/inconsistent bars, incomplete pagination, partial-day exclusion, short histories, stale and inconsistent snapshots, weekend/holiday/early-close/DST handling, dates through September 2028, HTML escaping and environment precedence. Declining markets need not produce five candidates. PostgreSQL tests caught and fixed an existing-instance Pydantic validation bypass. Independent review caught and fixed after-hours leader handling and mixing daily prices with unrelated minute timestamps.
+
+News, earnings calendars, financial statement analysis, claim-validated AI synthesis, prospective return evaluation, cloud publication, scheduled monitoring and backup/restore operations remain pending. The local screening workflow does not yet persist into PostgreSQL. The two-year document describes maintenance and evaluation work; no two-year uptime or profitability claim has been verified. No trades, paid subscriptions or cloud resources were created.
+
+## Original prototype — 2026-09-10
 
 Environment: Windows PowerShell, Python 3.14.0. Core application has no third-party Python dependencies.
 

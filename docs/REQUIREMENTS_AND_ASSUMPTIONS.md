@@ -2,6 +2,8 @@
 
 Status: confirmed product direction and proposed release criteria, 2026-09-11. This document specifies the intended system; it does not claim those capabilities exist today.
 
+**Superseding scope, 2026-09-17:** The user requests five candidates for 1–7 days, one month and six months, today's leaders and a two-year operating target. Read [the addendum](MULTI_HORIZON_IMPLEMENTATION.md). It supersedes R02/R03 and the broad-screening deferral below; free-cost, privacy and evidence requirements remain in force.
+
 ## 1. Purpose
 
 Help Suvam make better-informed personal decisions about a small US-stock watchlist over days to weeks. The advisor should explain what changed, why it may matter, what evidence challenges the interpretation, and what to investigate next. Trades remain manual in INDmoney.

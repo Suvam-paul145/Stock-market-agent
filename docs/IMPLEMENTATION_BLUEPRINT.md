@@ -1,5 +1,7 @@
 # Personal stock research advisor: implementation blueprint
 
+**Implementation update, 2026-09-17:** [The multi-horizon addendum](MULTI_HORIZON_IMPLEMENTATION.md) supersedes older horizon/universe scope and current-state statements below. PostgreSQL foundation and local multi-horizon screening now exist; their integration, model research, cloud publication and backups remain pending. [Foundation verification](POSTGRES_FOUNDATION.md) documents the completed database increment.
+
 Status: implementation specification, 2026-09-11. This document is ready to guide the next coding stage; its target architecture has not been implemented or deployed. Product decisions are in [requirements](REQUIREMENTS_AND_ASSUMPTIONS.md); supporting research is in [the dossier](RESEARCH_DOSSIER.md).
 
 ## 1. Architecture decision
