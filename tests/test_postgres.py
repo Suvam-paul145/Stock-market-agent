@@ -21,6 +21,8 @@ from stock_agent.db.access import grant_access
 from stock_agent.db.connection import database_engine, migrate
 from stock_agent.db.contracts import EvidenceInput, Excerpt, ReviewInput
 from stock_agent.db.repository import GateError, ResearchRepository
+from stock_agent.db.legacy import import_legacy
+from stock_agent.core import Store
 
 pytestmark = pytest.mark.postgres
 SCHEMA_MARKER = "stock_agent_disposable_integration_tests"
@@ -126,6 +128,18 @@ def test_migration_upgrade_idempotent_and_explicit_downgrade(db, seeded):
         assert conn.execute(text("SELECT to_regclass('research.unrelated_test_sentinel')")).scalar_one()
     migrate(db)
     assert scalar(db, "SELECT count(*) FROM research.companies") == 0
+
+
+def test_unmarked_schema_is_preserved(db):
+    with db.begin() as conn:
+        conn.execute(text("COMMENT ON SCHEMA research IS NULL"))
+    try:
+        with pytest.raises(RuntimeError, match="ownership and marker"):
+            drop_owned_test_schema(db)
+        assert scalar(db, "SELECT version_num FROM research.alembic_version") == "0001_foundation"
+    finally:
+        with db.begin() as conn:
+            conn.execute(text(f"COMMENT ON SCHEMA research IS '{SCHEMA_MARKER}'"))
 
 
 def test_ingestion_dedup_revision_and_first_observation(db, seeded):
@@ -342,3 +356,26 @@ def test_reader_writer_privilege_boundaries(db, seeded):
                 if exists:
                     conn.exec_driver_sql(f"DROP OWNED BY {role}")
                     conn.exec_driver_sql(f"DROP ROLE {role}")
+
+
+def test_legacy_import_idempotent_quarantined_and_atomic(db, tmp_path):
+    path = tmp_path / "legacy.sqlite3"
+    store = Store(path)
+    store.save_report(dict(id="demo", generated_at="2026-01-01T00:00:00+00:00", mode="synthetic_demo"))
+    store.save_report(dict(id="unknown", generated_at="2026-01-01T00:00:00+00:00", mode="provider_collection"))
+    store.close()
+    original = path.read_bytes()
+    first = import_legacy(db, path)
+    assert first["inserted"] == 2
+    assert first["live_records_promoted"] == 0
+    assert first["classifications"] == {"synthetic": 1, "quarantined": 1}
+    assert import_legacy(db, path)["inserted"] == 0
+    assert scalar(db, "SELECT count(*) FROM research.evidence") == 0
+    assert path.read_bytes() == original
+    with db.begin() as conn:
+        conn.execute(text("DELETE FROM research.legacy_records WHERE row_key='1'"))
+        conn.execute(text("UPDATE research.legacy_records SET content_hash='tampered' WHERE row_key='2'"))
+    with pytest.raises(GateError, match="does not match"):
+        import_legacy(db, path)
+    assert scalar(db, "SELECT count(*) FROM research.legacy_records") == 1
+    assert path.read_bytes() == original

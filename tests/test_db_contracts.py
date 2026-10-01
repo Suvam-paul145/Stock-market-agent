@@ -39,6 +39,25 @@ def test_model_narrative_not_accepted_by_source_excerpt_contract():
         ReviewInput(company_id=uuid4(), kind="ai_recommendation", excerpts=[])
 
 
+def test_copied_models_are_revalidated_at_repository_boundary():
+    original = EvidenceInput(**evidence())
+    with pytest.raises(ValidationError):
+        EvidenceInput.model_validate(original.model_copy(update={"origin": "unchecked"}))
+    with pytest.raises(ValidationError):
+        EvidenceInput.model_validate(original.model_copy(update={"published_at": datetime(2026, 1, 1)}))
+
+
+def test_copied_nested_excerpt_is_revalidated():
+    from stock_agent.db.contracts import Excerpt
+
+    excerpt = Excerpt(evidence_id=uuid4(), quote="Valid excerpt")
+    candidate = ReviewInput(company_id=uuid4(), excerpts=[excerpt])
+    with pytest.raises(ValidationError):
+        ReviewInput.model_validate(candidate.model_copy(update={
+            "excerpts": [excerpt.model_copy(update={"quote": ""})],
+        }))
+
+
 @pytest.mark.parametrize("url,profile", [
     ("sqlite:///fallback.db", "local"),
     ("postgresql://user:secret@cloud.example/db", "local"),
