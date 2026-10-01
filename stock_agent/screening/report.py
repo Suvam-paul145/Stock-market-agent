@@ -3,6 +3,13 @@ import json
 from stock_agent.report_paths import create_report_directory, refresh_report_index
 
 
+def company_name(report, row):
+    # Support older saved reports, which already contain names in SEC metadata.
+    filing_name = report.get("filings", {}).get(row["symbol"], {}).get("company")
+    configured = report.get("universe", {}).get("company_names", {}).get(row["symbol"])
+    return row.get("company") or filing_name or configured or "Company name unavailable"
+
+
 def render(report):
     def esc(value):
         return html.escape(str(value), quote=True)
@@ -20,7 +27,7 @@ def render(report):
                 displays.append(f"<span>Volume / prior full-day average<b>{metrics['volume_fraction']:.2f}×</b></span>")
             filing = report["filings"].get(row["symbol"], {})
             links = "".join(f'<li><a href="{esc(f["url"])}" target="_blank" rel="noopener noreferrer">{esc(f["form"])} · {esc(f["filed_at"])}</a></li>' for f in filing.get("filings", []))
-            cards.append(f'''<article><div class="cardtop"><h3><small>#{row['rank']}</small> {esc(row['symbol'])}</h3>
+            cards.append(f'''<article><div class="cardtop"><h3><small>#{row['rank']}</small> {esc(row['symbol'])} <span class="company-name">— {esc(company_name(report, row))}</span></h3>
                 <span class="score">{row['score']:.1f}<small>relative score / 100</small></span></div>
                 <p class="muted">{esc(row['sector'])} · ${metrics['price']:.2f} · {esc(board['as_of_session'])}</p>
                 <p>{esc(row['thesis'])}</p><div class="metrics">{''.join(displays)}</div>
@@ -40,7 +47,7 @@ def render(report):
     .eyebrow{{color:#7bd5c2;letter-spacing:.12em;text-transform:uppercase;font-size:12px}}.notice{{border-left:3px solid #e5b56d;padding:14px 20px;background:#242335;border-radius:8px;margin:24px 0}}
     nav{{display:flex;gap:10px;flex-wrap:wrap}}a{{color:#9cdecf}}nav a{{text-decoration:none;border:1px solid #384458;padding:8px 15px;border-radius:30px}}
     .cards{{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:16px;margin:20px 0}}article{{background:#172132;border:1px solid #2c3a50;padding:22px;border-radius:14px}}
-    .cardtop{{display:flex;justify-content:space-between;align-items:center;gap:12px}}h3 small{{font-size:15px}}.score{{font-size:25px;color:#8be0c8;text-align:right}}.score small{{display:block;font-size:10px}}
+    .cardtop{{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}}h3 small{{font-size:15px}}.company-name{{font-size:15px;font-weight:500;color:#c0d1e7;overflow-wrap:anywhere}}.score{{font-size:25px;color:#8be0c8;text-align:right;flex-shrink:0}}.score small{{display:block;font-size:10px}}
     .metrics{{display:grid;grid-template-columns:1fr 1fr;gap:12px;border-top:1px solid #334055;padding-top:14px}}.metrics span{{font-size:12px;color:#a6b5c9}}.metrics b{{display:block;font-size:17px;color:#e7edf7}}details{{margin-top:18px}}summary{{cursor:pointer;color:#a6dacc}}pre{{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px}}footer{{margin-top:35px;border-top:1px solid #344156;padding-top:20px}}
     </style></head><body><main><div class="eyebrow">Private research workbench · {esc(report['strategy_version'])}</div>
     <h1>One universe. Four perspectives.</h1><p class="muted">{esc(report['universe']['universe_name'])}<br>
@@ -53,8 +60,7 @@ def render(report):
     <p><a href="research.json">Structured report</a> · <a href="research.md">Readable report</a> · <a href="evidence.json">Saved public inputs</a></p></footer></main></body></html>'''
 
 
-def export_screen(report, inputs, output):
-    directory = create_report_directory(output, report, "screen", allow_collision=True)
+def markdown_screen(report):
     text = ["# Multi-horizon stock research", "", f"Generated: {report['generated_at']}",
             "", "Research shortlists only; strategy has not been validated. Scores are not probabilities.",
             "", f"Universe: {report['universe']['universe_name']}", ""]
@@ -62,12 +68,21 @@ def export_screen(report, inputs, output):
         text.extend(["## " + board["label"], "", board["reason"], "",
                      f"Coverage: {board['coverage']:.0%}. Session: {board['as_of_session']}", ""])
         for row in board["candidates"]:
-            text.extend([f"### {row['rank']}. {row['symbol']} — score {row['score']}", "", row["thesis"], "",
+            name = company_name(report, row).replace("\n", " ").replace("\r", " ")
+            name = html.escape(name)
+            for char in ("\\", "`", "*", "_", "[", "]", "#", "|"):
+                name = name.replace(char, "\\" + char)
+            text.extend([f"### {row['rank']}. {row['symbol']} — {name} (score {row['score']})", "", row["thesis"], "",
                          "Metrics: " + json.dumps(row["metrics"], sort_keys=True), "", row["invalidation"], ""])
     text.extend(["## Limitations", "", *["- " + gap for gap in report["limitations"]], ""])
+    return "\n".join(text)
+
+
+def export_screen(report, inputs, output):
+    directory = create_report_directory(output, report, "screen", allow_collision=True)
     for name, value in (("research.json", report), ("evidence.json", inputs)):
         (directory / name).write_text(json.dumps(value, indent=2, allow_nan=False), encoding="utf-8")
-    (directory / "research.md").write_text("\n".join(text), encoding="utf-8")
+    (directory / "research.md").write_text(markdown_screen(report), encoding="utf-8")
     (directory / "index.html").write_text(render(report), encoding="utf-8")
     refresh_report_index(output)
     return directory

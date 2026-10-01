@@ -14,6 +14,8 @@ The main CLI now loads `.env` automatically; existing shell variables take prece
 
 The default configuration screens a labelled 30-company starter universe using free IEX data. Copy `screening.example.json` to `screening.local.json` to edit symbols, sectors and risk limits, then pass `--config screening.local.json`; `scripts/run-research.ps1` selects that local file automatically when present. A list can contain fewer than five or be unavailable when gates fail. Exit code 2 means an unavailable board or run failure; exit code 0 is not evidence of investment usefulness.
 
+Each candidate displays its ticker beside the full company name from SEC metadata, for example `AAPL — Apple Inc.`. You can optionally add a `company_names` mapping to the screening configuration for use when SEC metadata is unavailable or filings are skipped. Unresolved names are explicitly marked unavailable.
+
 Read [the multi-horizon implementation and two-year operating plan](docs/MULTI_HORIZON_IMPLEMENTATION.md) for formulas, limitations and remaining work. [PostgreSQL setup](docs/POSTGRES_FOUNDATION.md) is separate: the local screen requires no database and does not publish into the cloud. News, earnings and fundamentals still need review before trade-oriented recommendations.
 
 ## Current project direction

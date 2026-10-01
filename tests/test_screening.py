@@ -214,6 +214,7 @@ def test_local_env_does_not_override_or_interpolate(monkeypatch, tmp_path):
 def test_complete_pipeline_export_keeps_inputs_and_escapes_text(fixture, tmp_path):
     config, _, bars, snapshots = fixture
     config = config.model_copy(update={"universe_name": "<script>alert('bad')</script>"})
+    config.company_names.update({s: "<script>Company & Sons</script>" for s in config.symbols})
     client = FakeClient([{"bars": bars, "next_page_token": None}, snapshots])
     with patch.object(Alpaca, "headers", return_value={}):
         report, inputs = run_screen(config, client=client, now=NOW, include_filings=False)
@@ -222,5 +223,8 @@ def test_complete_pipeline_export_keeps_inputs_and_escapes_text(fixture, tmp_pat
     assert len(report["boards"]["six_months"]["candidates"]) == 5
     document = (directory / "index.html").read_text(encoding="utf-8")
     assert "<script>" not in document and "&lt;script&gt;" in document
+    assert "&lt;script&gt;Company &amp; Sons&lt;/script&gt;" in document
+    assert all(row["company"] == "<script>Company & Sons</script>"
+               for board in report["boards"].values() for row in board["candidates"])
     assert "Research shortlists, not validated trade recommendations" in document
     assert len(list(Path(directory).iterdir())) == 4

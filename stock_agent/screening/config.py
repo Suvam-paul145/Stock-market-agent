@@ -18,6 +18,7 @@ class ScreenConfig(BaseModel):
     minimum_universe_coverage: float = Field(default=0.8, ge=0.5, le=1, allow_inf_nan=False)
     max_snapshot_age_seconds: int = Field(default=900, ge=60, le=1800)
     sectors: dict[str, str]
+    company_names: dict[str, str] = Field(default_factory=dict)
 
     @model_validator(mode="after")
     def validate_symbols(self):
@@ -28,6 +29,10 @@ class ScreenConfig(BaseModel):
             raise ValueError("Invalid stock symbol")
         if set(self.sectors) != set(self.symbols) or any(not v.strip() or len(v) > 80 for v in self.sectors.values()):
             raise ValueError("Every configured stock requires a sector")
+        if not set(self.company_names).issubset(self.symbols) or any(
+            not name.strip() or len(name) > 200 for name in self.company_names.values()
+        ):
+            raise ValueError("Company names must belong to the configured universe and contain 1 to 200 characters")
         return self
 
 

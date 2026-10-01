@@ -75,6 +75,13 @@ def run_screen(config, *, client=None, now=None, include_filings=True):
             except (ProviderError, ValueError, KeyError, TypeError, AttributeError):
                 filings[symbol] = dict(status="unavailable", coverage="No inference about absence of filings")
     inputs["filings"] = filings
+    for board in boards.values():
+        for candidate in board["candidates"]:
+            symbol = candidate["symbol"]
+            source_name = filings.get(symbol, {}).get("company")
+            candidate["company"] = source_name or config.company_names.get(symbol) or "Company name unavailable"
+            candidate["company_name_source"] = ("SEC submissions" if source_name else
+                                                "configuration" if symbol in config.company_names else "unavailable")
     report = dict(schema_version=1, strategy_version=STRATEGY_VERSION, mode="live_research_screen",
         started_at=started.isoformat(), generated_at=cutoff.isoformat(), expires_at=(cutoff + timedelta(minutes=60)).isoformat(),
         universe=config.model_dump(), universe_hash=digest(config.model_dump()), context=context,
