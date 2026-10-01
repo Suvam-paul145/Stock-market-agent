@@ -3,10 +3,10 @@ from __future__ import annotations
 import html
 import json
 import uuid
-from pathlib import Path
 
 from .core import normalize_filings, normalize_trade, timestamp, utcnow
 from .providers import Alpaca, HttpClient, ProviderError, SEC
+from .report_paths import create_report_directory, refresh_report_index
 
 
 GAPS = ["News coverage is not connected.", "Earnings calendar is not connected.",
@@ -131,8 +131,8 @@ def markdown(report):
 
 
 def export(report, root):
-    directory = Path(root) / report["id"]
-    directory.mkdir(parents=True, exist_ok=False)
+    kind = "demo" if report["mode"] == "synthetic_demo" else "evidence"
+    directory = create_report_directory(root, report, kind, allow_collision=True)
     md = markdown(report)
     (directory / "research.json").write_text(json.dumps(report, indent=2, ensure_ascii=False, allow_nan=False), encoding="utf-8")
     (directory / "research.md").write_text(md, encoding="utf-8")
@@ -159,4 +159,5 @@ main{max-width:1000px;margin:auto}p{color:#b8cbd8}pre{white-space:pre-wrap;overf
 font:14px/1.75 ui-monospace,monospace;border:1px solid #385064;border-radius:12px;padding:24px}
 </style><main><h1>Research evidence workbench</h1><p>Local, read-only report. Review timestamps and coverage before use.</p><pre>"""
     (directory / "index.html").write_text(page + html.escape(md) + "</pre></main></html>", encoding="utf-8")
+    refresh_report_index(root)
     return directory
